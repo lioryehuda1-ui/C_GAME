@@ -64,17 +64,6 @@ class Player {
 
         // Draw Dino Body
         ctx.drawImage(IMAGES.dino, -this.w/2, -this.h/2, this.w, this.h);
-
-        // Overlay Player Face (Higher and slightly forward for T-Rex)
-        const faceImg = this.id === 'p1' ? IMAGES.p1 : IMAGES.p2;
-        if (faceImg.complete && faceImg.naturalWidth !== 0) {
-            ctx.save();
-            ctx.beginPath();
-            ctx.arc(5, -28, 22, 0, Math.PI * 2);
-            ctx.clip();
-            ctx.drawImage(faceImg, -18, -50, 46, 46);
-            ctx.restore();
-        }
         ctx.restore();
     }
 }
