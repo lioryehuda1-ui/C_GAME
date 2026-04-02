@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="he">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>דין VS שון - פארק היורה! 🦖</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Bangers&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<div id="game-wrapper">
+
+  <!-- ══ MENU SCREEN ══ -->
+  <div id="menu-screen" class="screen">
+    <div class="jungle-fog"></div>
+    <div class="menu-content">
+      <div class="menu-title-row">
+        <span class="menu-dino bounce-a">🦖</span>
+        <div>
+          <h1 class="game-title jurassic-font">דין VS שון</h1>
+          <p class="game-sub">מהדורה פרה-היסטורית!</p>
+        </div>
+        <span class="menu-dino bounce-b">🦕</span>
+      </div>
+
+      <div class="player-cards">
+        <button class="pcard jurassic-btn" onclick="joinAs('shaun')">
+          <div class="menu-avatar-container">
+            <img src="static/shaun.png" class="menu-avatar" onerror="this.display='none'">
+          </div>
+          <div class="pcard-name">שון (גיל 8)</div>
+        </button>
+        <button class="pcard jurassic-btn" onclick="joinAs('dean')">
+          <div class="menu-avatar-container">
+            <img src="static/dean.png" class="menu-avatar" onerror="this.display='none'">
+          </div>
+          <div class="pcard-name">דין (גיל 9)</div>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ GAME SCREEN ══ -->
+  <div id="game-screen" class="screen">
+    <canvas id="gameCanvas"></canvas>
+    
+    <div id="vs-header" class="hidden">
+      <div class="vs-progress-track">
+        <div id="vp-shaun" class="vp-marker">
+           <img src="static/shaun.png" onerror="this.style.display='none'; this.nextElementSibling.style.display='block'">
+           <span style="display:none">👦</span>
+        </div>
+        <div id="vp-dean" class="vp-marker">
+           <img src="static/dean.png" onerror="this.style.display='none'; this.nextElementSibling.style.display='block'">
+           <span style="display:none">🧔</span>
+        </div>
+      </div>
+    </div>
+
+    <div id="hud" class="vs-hud">
+      <div class="hud-player p1">
+        <div class="hp-profile">
+            <img src="static/shaun.png" class="hp-avatar" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'">
+            <div class="avatar-fallback hf" style="display:none">שון</div>
+        </div>
+        <div class="hp-details">
+          <div class="hp-name">שון</div>
+          <div id="p1-lives" class="hp-lives"></div>
+        </div>
+      </div>
+
+      <div class="hud-center">
+        <div id="hud-score" class="hud-score-num">0</div>
+        <div class="hud-slabel">POINT</div>
+      </div>
+
+      <div class="hud-player p2">
+        <div class="hp-details">
+          <div class="hp-name">דין</div>
+          <div id="p2-lives" class="hp-lives"></div>
+        </div>
+        <div class="hp-profile">
+            <img src="static/dean.png" class="hp-avatar" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'">
+            <div class="avatar-fallback hf" style="display:none">דין</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="damage-flash"></div>
+  </div>
+
+  <!-- ══ GAME OVER SCREEN ══ -->
+  <div id="gameover-screen" class="screen flex-center">
+    <div class="go-content rugged-box">
+      <h2 class="go-title jurassic-font">סוף המסע!</h2>
+      <div class="go-score-box">
+        <div class="gs-label">ניקוד סופי</div>
+        <div class="gs-value" id="go-run-score">0</div>
+      </div>
+      <div class="go-btns">
+        <button class="gbtn primary" onclick="restartGame()">שחק שוב!</button>
+        <button class="gbtn secondary" onclick="goToMenu()">תפריט ראשי</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+<script src="game.js"></script>
+</body>
+</html>
