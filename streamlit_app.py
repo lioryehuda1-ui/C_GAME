@@ -25,7 +25,6 @@ def get_base64_image(image_path):
         with open(image_path, "rb") as img_file:
             return f"data:image/png;base64,{base64.b64encode(img_file.read()).decode()}"
     except Exception as e:
-        st.error(f"Failed to load image: {image_path}")
         return ""
 
 # Directories
@@ -43,20 +42,23 @@ dean_b64 = get_base64_image(static_dir / "dean.png")
 shaun_b64 = get_base64_image(static_dir / "shaun.png")
 dino_b64 = get_base64_image(static_dir / "dino.png")
 jungle_b64 = get_base64_image(static_dir / "jungle.png")
+pterodactyl_b64 = get_base64_image(static_dir / "pterodactyl.png")
+raptor_b64 = get_base64_image(static_dir / "raptor.png")
 
 # Inject Assets into HTML/CSS/JS
-# 1. Replace static paths in HTML
 final_html = html_content \
     .replace('static/shaun.png', shaun_b64) \
     .replace('static/dean.png', dean_b64) \
     .replace('<link rel="stylesheet" href="style.css" />', f"<style>{css_content}</style>") \
     .replace('<script src="game.js"></script>', f"<script>{js_content}</script>")
 
-# 2. Replace static paths in the injected JS content
+# Inject Assets into the JS Image assignments
 final_html = final_html.replace("IMAGES.p1.src = 'static/shaun.png';", f"IMAGES.p1.src = '{shaun_b64}';")
 final_html = final_html.replace("IMAGES.p2.src = 'static/dean.png';", f"IMAGES.p2.src = '{dean_b64}';")
 final_html = final_html.replace("IMAGES.dino.src = 'static/dino.png';", f"IMAGES.dino.src = '{dino_b64}';")
 final_html = final_html.replace("IMAGES.bg.src = 'static/jungle.png';", f"IMAGES.bg.src = '{jungle_b64}';")
+final_html = final_html.replace("IMAGES.pterodactyl.src = 'static/pterodactyl.png';", f"IMAGES.pterodactyl.src = '{pterodactyl_b64}';")
+final_html = final_html.replace("IMAGES.raptor.src = 'static/raptor.png';", f"IMAGES.raptor.src = '{raptor_b64}';")
 
 # Render
 components.html(final_html, height=1000, scrolling=True)
