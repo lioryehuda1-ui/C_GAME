@@ -30,9 +30,9 @@ class Player {
         this.name = name;
         this.color = color;
         this.x = xOffset;
-        this.y = GROUND_Y - 90;
-        this.w = 90;
-        this.h = 90;
+        this.y = GROUND_Y - 130;
+        this.w = 130;
+        this.h = 130;
         this.vy = 0;
         this.isJumping = false;
         this.jumps = 0;
@@ -65,14 +65,14 @@ class Player {
         // Draw Dino Body
         ctx.drawImage(IMAGES.dino, -this.w/2, -this.h/2, this.w, this.h);
 
-        // Overlay Player Face
+        // Overlay Player Face (Higher and slightly forward for T-Rex)
         const faceImg = this.id === 'p1' ? IMAGES.p1 : IMAGES.p2;
         if (faceImg.complete && faceImg.naturalWidth !== 0) {
             ctx.save();
             ctx.beginPath();
-            ctx.arc(-5, -15, 18, 0, Math.PI * 2);
+            ctx.arc(5, -28, 22, 0, Math.PI * 2);
             ctx.clip();
-            ctx.drawImage(faceImg, -23, -33, 36, 36);
+            ctx.drawImage(faceImg, -18, -50, 46, 46);
             ctx.restore();
         }
         ctx.restore();
@@ -124,8 +124,8 @@ function update() {
         SOUNDS.jump.cloneNode().play().catch(() => {});
     }
     player1.isDucking = keys['KeyS'];
-    player1.h = player1.isDucking ? 60 : 90;
-    player1.y = player1.isDucking && !player1.isJumping ? GROUND_Y - 60 : player1.y;
+    player1.h = player1.isDucking ? 80 : 130;
+    player1.y = player1.isDucking && !player1.isJumping ? GROUND_Y - 80 : player1.y;
     player1.update();
 
     // Handle Input P2 (Dean): Arrows
@@ -135,8 +135,8 @@ function update() {
         SOUNDS.jump.cloneNode().play().catch(() => {});
     }
     player2.isDucking = keys['ArrowDown'];
-    player2.h = player2.isDucking ? 60 : 90;
-    player2.y = player2.isDucking && !player2.isJumping ? GROUND_Y - 60 : player2.y;
+    player2.h = player2.isDucking ? 80 : 130;
+    player2.y = player2.isDucking && !player2.isJumping ? GROUND_Y - 80 : player2.y;
     player2.update();
 
     // Obstacles
