@@ -1,27 +1,19 @@
-// ===== JURASSIC PARK: DUO EDITION - LOCAL VERSUS + JUMP SCARES =====
+// ===== JURASSIC MULTIPLAYER: INSTANT PHONE-TO-PHONE SYNC =====
 'use strict';
 
 const CANVAS_W = 1000, CANVAS_H = 400, GROUND_Y = 320;
-const GRAVITY = 0.6, JUMP_FORCE = -14, DOUBLE_JUMP_FORCE = -11;
+const GRAVITY = 0.6, JUMP_FORCE = -14;
 const BASE_SPEED = 6.5, SPEED_INC = 0.0006;
 
+// Assets
 const IMAGES = { 
-    bg: new Image(), dino: new Image(), p1: new Image(), p2: new Image(),
-    pterodactyl: new Image(), raptor: new Image()
+    bg: new Image(), dino: new Image(), p1: new Image(), p2: new Image(), bat: new Image() 
 };
 IMAGES.bg.src = 'static/jungle.png';
 IMAGES.dino.src = 'static/dino.png';
 IMAGES.p1.src = 'static/shaun.png';
 IMAGES.p2.src = 'static/dean.png';
-IMAGES.pterodactyl.src = 'static/pterodactyl.png';
-IMAGES.raptor.src = 'static/raptor.png';
-
-let canvas, ctx, animId = null;
-let gameState = 'menu', speed = BASE_SPEED, score = 0, frameCount = 0;
-let obstacles = [], scares = [], keys = {}, screenShake = 0;
-
-let player1 = null;
-let player2 = null;
+IMAGES.bat.src = 'static/bat.png';
 
 const SOUNDS = {
     jump: new Audio('https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3'),
@@ -30,71 +22,56 @@ const SOUNDS = {
     screech: new Audio('https://assets.mixkit.co/active_storage/sfx/1210/1210-preview.mp3')
 };
 
-class Player {
-    constructor(id, name, color, xOffset) {
-        this.id = id;
-        this.name = name;
-        this.color = color;
-        this.x = xOffset;
-        this.y = GROUND_Y - 130;
-        this.w = 130;
-        this.h = 130;
-        this.vy = 0;
-        this.isJumping = false;
-        this.jumps = 0;
-        this.isDucking = false;
-        this.lives = 3;
-        this.invincible = 0;
-    }
+// State
+let canvas, ctx, animId = null, wss = null;
+let gameState = 'menu', myRole = 'spectator', speed = BASE_SPEED, score = 0, frameCount = 0;
+let obstacles = [], scares = [], keys = {}, screenShake = 0;
 
-    update() {
-        if (this.invincible > 0) this.invincible--;
-        this.vy += GRAVITY;
-        this.y += this.vy;
-
-        if (this.y + this.h > GROUND_Y) {
-            this.y = GROUND_Y - this.h;
-            this.vy = 0;
-            this.isJumping = false;
-            this.jumps = 0;
-        }
-    }
-
-    draw() {
-        ctx.save();
-        if (this.invincible % 10 < 5 && this.invincible > 0) ctx.globalAlpha = 0.3;
-        ctx.translate(this.x + this.w/2, this.y + this.h/2);
-        if (this.vy < -2) ctx.rotate(-0.05);
-        if (this.vy > 2) ctx.rotate(0.05);
-        ctx.drawImage(IMAGES.dino, -this.w/2, -this.h/2, this.w, this.h);
-        ctx.restore();
-    }
-}
+let players = {
+    shaun: { x: 150, y: GROUND_Y-150, w: 150, h: 150, vy: 0, jumps: 0, lives: 3, invincible: 0, isDucking: false },
+    dean: { x: 250, y: GROUND_Y-150, w: 150, h: 150, vy: 0, jumps: 0, lives: 3, invincible: 0, isDucking: false }
+};
 
 function init() {
     canvas = document.getElementById('gameCanvas');
     ctx = canvas.getContext('2d');
-    canvas.width = CANVAS_W;
-    canvas.height = CANVAS_H;
+    canvas.width = CANVAS_W; canvas.height = CANVAS_H;
     window.addEventListener('keydown', e => keys[e.code] = true);
     window.addEventListener('keyup', e => keys[e.code] = false);
     showScreen('menu-screen');
 }
 
-function startVSMode() {
+function joinAs(role) {
+    myRole = role;
+    connectWSS();
     gameState = 'playing';
-    speed = BASE_SPEED;
-    score = 0;
-    frameCount = 0;
-    obstacles = [];
-    scares = [];
-    player1 = new Player('p1', 'שון', '#4caf50', 150);
-    player2 = new Player('p2', 'דין', '#2196f3', 250);
-    player1.invincible = 120;
-    player2.invincible = 120;
     SOUNDS.roar.play().catch(() => {});
     showScreen('game-screen');
     if (!animId) loop();
+}
+
+function connectWSS() {
+    // SocketsBay public relay for instant multiplayer
+    wss = new WebSocket('wss://socketsbay.com/wss/v2/1/jurassic-shaun-dean/');
+    wss.onmessage = (e) => {
+        try {
+            const data = JSON.parse(e.data);
+            if (data.role && data.role !== myRole) {
+                players[data.role] = { ...players[data.role], ...data.state };
+                if (data.type === 'jump') SOUNDS.jump.cloneNode().play().catch(() => {});
+                if (data.type === 'scare') spawnScare(data.scareType);
+            }
+        } catch(err) {}
+    };
+}
+
+function sendState(type = 'state') {
+    if (wss && wss.readyState === WebSocket.OPEN) {
+        wss.send(JSON.stringify({
+            role: myRole, type: type,
+            state: { x: players[myRole].x, y: players[myRole].y, vy: players[myRole].vy, lives: players[myRole].lives, isDucking: players[myRole].isDucking }
+        }));
+    }
 }
 
 function update() {
@@ -103,43 +80,41 @@ function update() {
     score = Math.floor(frameCount / 10);
     speed += SPEED_INC;
 
-    // SCARY JUMP SCARES - Low probability trigger
-    if (frameCount % (60 * 12) === 0 && Math.random() > 0.4) {
-        triggerJumpScare();
+    // SCARY SCATTER - Random Bat
+    if (frameCount % 400 === 0 && Math.random() > 0.5) triggerScare();
+
+    const me = players[myRole];
+    if (me) {
+        // Jump / Controls
+        if ((keys['KeyW'] || keys['Space'] || keys['ArrowUp']) && me.y >= GROUND_Y - me.h) {
+            me.vy = JUMP_FORCE; sendState('jump');
+            SOUNDS.jump.cloneNode().play().catch(() => {});
+        }
+        me.isDucking = keys['KeyS'] || keys['ArrowDown'];
+        me.h = me.isDucking ? 100 : 150;
+        me.y = me.isDucking && me.y >= GROUND_Y - me.h ? GROUND_Y - me.h : me.y;
+
+        // Physics
+        me.vy += GRAVITY;
+        me.y += me.vy;
+        if (me.y + me.h > GROUND_Y) { me.y = GROUND_Y - me.h; me.vy = 0; }
+        
+        if (me.invincible > 0) me.invincible--;
+        sendState();
     }
 
-    // Input P1
-    if ((keys['KeyW'] || keys['Space']) && !player1.isJumping) {
-        player1.vy = JUMP_FORCE; player1.isJumping = true;
-        SOUNDS.jump.cloneNode().play().catch(() => {});
+    // Master (Shaun) generates obstacles
+    if (myRole === 'shaun' && frameCount % 120 === 0) {
+        obstacles.push({ x: CANVAS_W, y: GROUND_Y - 40, w: 40, h: 40 });
     }
-    player1.isDucking = keys['KeyS'];
-    player1.h = player1.isDucking ? 80 : 130;
-    player1.y = player1.isDucking && !player1.isJumping ? GROUND_Y - 80 : player1.y;
-    player1.update();
 
-    // Input P2
-    if (keys['ArrowUp'] && !player2.isJumping) {
-        player2.vy = JUMP_FORCE; player2.isJumping = true;
-        SOUNDS.jump.cloneNode().play().catch(() => {});
-    }
-    player2.isDucking = keys['ArrowDown'];
-    player2.h = player2.isDucking ? 80 : 130;
-    player2.y = player2.isDucking && !player2.isJumping ? GROUND_Y - 80 : player2.y;
-    player2.update();
-
-    // Obstacles
-    if (frameCount % Math.max(60, Math.floor(100 - speed * 2)) === 0) {
-        obstacles.push({ x: CANVAS_W, y: GROUND_Y - 40, w: 40, h: 40, type: Math.random() > 0.7 ? 'vulture' : 'cactus' });
-    }
+    // Sync obstacles? For a simple relay, let's keep it simple: each phone has own obstacles or Shaun relays.
+    // Simplifying: Local obstacles for now to ensure NO LAG, but players see each other.
     obstacles.forEach(obs => {
         obs.x -= speed;
-        if (obs.type === 'vulture') obs.y = GROUND_Y - 80 + Math.sin(frameCount/10)*20;
-        [player1, player2].forEach(p => {
+        [players.shaun, players.dean].forEach(p => {
             if (p.invincible === 0 && checkCollision(p, obs)) {
-                p.lives--; p.invincible = 90; screenShake = 15;
-                document.getElementById('damage-flash').style.opacity = '1';
-                setTimeout(() => document.getElementById('damage-flash').style.opacity = '0', 200);
+                if (p === me) { p.lives--; p.invincible = 90; screenShake = 15; }
             }
         });
     });
@@ -147,22 +122,21 @@ function update() {
 
     // Update Scares
     scares.forEach(s => { s.x += s.vx; s.y += s.vy; s.opacity -= 0.005; });
-    scares = scares.filter(s => s.opacity > 0 && s.x < CANVAS_W + 200 && s.x > -200);
-
-    if (player1.lives <= 0 || player2.lives <= 0) gameOver();
+    scares = scares.filter(s => s.opacity > 0);
     if (screenShake > 0) screenShake--;
+    if (me && me.lives <= 0) gameOver();
 }
 
-function triggerJumpScare() {
-    const isRaptor = Math.random() > 0.5;
-    if (isRaptor) {
-        scares.push({ x: CANVAS_W + 100, y: GROUND_Y - 150, w: 200, h: 200, vx: -15, vy: -2, type: 'raptor', opacity: 1 });
-        SOUNDS.roar.cloneNode().play().catch(() => {});
-    } else {
-        scares.push({ x: -200, y: 50, w: 250, h: 150, vx: 12, vy: 1, type: 'pterodactyl', opacity: 1 });
+function triggerScare() { 
+    spawnScare('bat');
+    if (wss && wss.readyState === WebSocket.OPEN) wss.send(JSON.stringify({ role: myRole, type: 'scare', scareType: 'bat' }));
+}
+
+function spawnScare(type) {
+    if (type === 'bat') {
+        scares.push({ x: CANVAS_W + 100, y: 50, w: 200, h: 100, vx: -12, vy: 1, opacity: 1 });
         SOUNDS.screech.cloneNode().play().catch(() => {});
     }
-    screenShake = 10;
 }
 
 function checkCollision(p, o) {
@@ -176,29 +150,28 @@ function draw() {
     ctx.drawImage(IMAGES.bg, bgX + CANVAS_W, 0, CANVAS_W, CANVAS_H);
     ctx.strokeStyle = '#3d2b1f'; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(0, GROUND_Y); ctx.lineTo(CANVAS_W, GROUND_Y); ctx.stroke();
 
-    player1.draw(); player2.draw();
-    obstacles.forEach(obs => {
-        ctx.fillStyle = obs.type === 'vulture' ? '#ff5722' : '#4caf50'; ctx.font = '30px serif';
-        ctx.fillText(obs.type === 'vulture' ? '🦅' : '🌵', obs.x, obs.y + 30);
-    });
-
-    // Draw Jump Scares
-    scares.forEach(s => {
+    // Draw Players
+    for (let role in players) {
+        const p = players[role];
         ctx.save();
-        ctx.globalAlpha = s.opacity;
-        ctx.filter = `blur(${Math.max(0, 2 - s.opacity * 2)}px)`;
-        const img = s.type === 'raptor' ? IMAGES.raptor : IMAGES.pterodactyl;
-        ctx.drawImage(img, s.x, s.y, s.w, s.h);
+        if (p.invincible % 10 < 5 && p.invincible > 0) ctx.globalAlpha = 0.3;
+        ctx.drawImage(IMAGES.dino, p.x, p.y, p.w, p.h);
         ctx.restore();
+    }
+
+    obstacles.forEach(o => { ctx.fillStyle = '#4caf50'; ctx.font = '30px serif'; ctx.fillText('🌵', o.x, o.y + 30); });
+
+    // Draw Scares
+    scares.forEach(s => {
+        ctx.save(); ctx.globalAlpha = s.opacity; ctx.drawImage(IMAGES.bat, s.x, s.y, s.w, s.h); ctx.restore();
     });
 
     document.getElementById('hud-score').innerText = score;
-    updateLives('p1-lives', player1.lives); updateLives('p2-lives', player2.lives);
+    updateLives('p1-lives', players.shaun.lives); updateLives('p2-lives', players.dean.lives);
 }
 
 function updateLives(id, count) {
-    let html = '';
-    for(let i=0; i<3; i++) html += i < count ? '❤️' : '🖤';
+    let html = ''; for(let i=0; i<3; i++) html += i < count ? '❤️' : '🖤';
     document.getElementById(id).innerHTML = html;
 }
 
@@ -209,6 +182,6 @@ function showScreen(id) {
 
 function loop() { update(); draw(); animId = requestAnimationFrame(loop); }
 function gameOver() { gameState = 'gameover'; document.getElementById('go-run-score').innerText = score; showScreen('gameover-screen'); SOUNDS.dead.play().catch(() => {}); }
-function restartGame() { startVSMode(); }
-function goToMenu() { gameState = 'menu'; showScreen('menu-screen'); }
+function restartGame() { window.location.reload(); }
+function goToMenu() { window.location.reload(); }
 window.onload = init;

@@ -15,7 +15,7 @@ st.set_page_config(
 st.markdown("""
 <style>
   #MainMenu, header, footer, .stAppDeployButton { visibility: hidden; }
-  .stApp { background: #010801; }
+  .stApp { background: #0b1b0b; }
   .block-container { padding: 0 !important; max-width: 100% !important; }
 </style>
 """, unsafe_allow_html=True)
@@ -42,10 +42,9 @@ dean_b64 = get_base64_image(static_dir / "dean.png")
 shaun_b64 = get_base64_image(static_dir / "shaun.png")
 dino_b64 = get_base64_image(static_dir / "dino.png")
 jungle_b64 = get_base64_image(static_dir / "jungle.png")
-pterodactyl_b64 = get_base64_image(static_dir / "pterodactyl.png")
-raptor_b64 = get_base64_image(static_dir / "raptor.png")
+bat_b64 = get_base64_image(static_dir / "bat.png")
 
-# Inject Assets into HTML/CSS/JS
+# Inject Assets and Code into HTML
 final_html = html_content \
     .replace('static/shaun.png', shaun_b64) \
     .replace('static/dean.png', dean_b64) \
@@ -57,8 +56,7 @@ final_html = final_html.replace("IMAGES.p1.src = 'static/shaun.png';", f"IMAGES.
 final_html = final_html.replace("IMAGES.p2.src = 'static/dean.png';", f"IMAGES.p2.src = '{dean_b64}';")
 final_html = final_html.replace("IMAGES.dino.src = 'static/dino.png';", f"IMAGES.dino.src = '{dino_b64}';")
 final_html = final_html.replace("IMAGES.bg.src = 'static/jungle.png';", f"IMAGES.bg.src = '{jungle_b64}';")
-final_html = final_html.replace("IMAGES.pterodactyl.src = 'static/pterodactyl.png';", f"IMAGES.pterodactyl.src = '{pterodactyl_b64}';")
-final_html = final_html.replace("IMAGES.raptor.src = 'static/raptor.png';", f"IMAGES.raptor.src = '{raptor_b64}';")
+final_html = final_html.replace("IMAGES.bat.src = 'static/bat.png';", f"IMAGES.bat.src = '{bat_b64}';")
 
-# Render
-components.html(final_html, height=1000, scrolling=True)
+# Render with ample height for mobile viewports
+components.html(final_html, height=1200, scrolling=True)
