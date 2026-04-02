@@ -194,6 +194,7 @@ function connectWS() {
         }
         if (msg.type === 'spawn') msg.data.forEach(d => spawnObs(d));
         else if (msg.type === 'start_countdown') startCountdown(msg.delay);
+        else if (msg.type === 'lobby_update') updateLobbyUI(msg);
     };
 }
 
@@ -201,6 +202,17 @@ function toggleReady() {
     isReady = !isReady;
     document.getElementById('ready-btn').innerText = isReady ? "מבוטל" : "אני מוכן!";
     sendWS({ type: 'ready', status: isReady });
+}
+
+function updateLobbyUI(msg) {
+    document.getElementById('ready-status-shaun').innerText = msg.ready.includes('shaun') ? "מוכן לצאת!" : (msg.players.includes('shaun') ? "מחובר" : "טרם התחבר");
+    document.getElementById('ready-status-dean').innerText = msg.ready.includes('dean') ? "מוכן לצאת!" : (msg.players.includes('dean') ? "מחובר" : "טרם התחבר");
+    
+    if (msg.ready.includes('shaun')) document.getElementById('ready-status-shaun').style.color = '#00ff88';
+    else document.getElementById('ready-status-shaun').style.color = 'white';
+    
+    if (msg.ready.includes('dean')) document.getElementById('ready-status-dean').style.color = '#00ff88';
+    else document.getElementById('ready-status-dean').style.color = 'white';
 }
 
 function sendWS(data) { if (wss && wss.readyState === WebSocket.OPEN) wss.send(JSON.stringify(data)); }
