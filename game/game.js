@@ -43,9 +43,16 @@ function init() {
     window.addEventListener('keydown', e => keys[e.code] = true);
     window.addEventListener('keyup', e => keys[e.code] = false);
     
-    // Process Green Screen assets once loaded
-    IMAGES.dino.onload = () => processedImages.dino = keyOutGreen(IMAGES.dino);
-    IMAGES.bat.onload = () => processedImages.bat = keyOutGreen(IMAGES.bat);
+    // Process Green Screen assets immediately if already loaded, otherwise on load
+    const process = (name) => {
+        if (IMAGES[name].complete && IMAGES[name].naturalWidth !== 0) {
+            processedImages[name] = keyOutGreen(IMAGES[name]);
+        } else {
+            IMAGES[name].onload = () => processedImages[name] = keyOutGreen(IMAGES[name]);
+        }
+    };
+    process('dino');
+    process('bat');
     
     showScreen('menu-screen');
 }
