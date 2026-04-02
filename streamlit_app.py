@@ -40,9 +40,9 @@ js_content   = (game_dir / "game.js").read_text(encoding="utf-8")
 # Load and Encode Assets
 dean_b64 = get_base64_image(static_dir / "dean.png")
 shaun_b64 = get_base64_image(static_dir / "shaun.png")
-dino_b64 = get_base64_image(static_dir / "dino.png")
+dino_b64 = get_base64_image(static_dir / "dino_green.png")
 jungle_b64 = get_base64_image(static_dir / "jungle.png")
-bat_b64 = get_base64_image(static_dir / "bat.png")
+bat_b64 = get_base64_image(static_dir / "bat_green.png")
 
 # Inject Assets and Code into HTML
 final_html = html_content \
@@ -54,9 +54,9 @@ final_html = html_content \
 # Inject Assets into the JS Image assignments
 final_html = final_html.replace("IMAGES.p1.src = 'static/shaun.png';", f"IMAGES.p1.src = '{shaun_b64}';")
 final_html = final_html.replace("IMAGES.p2.src = 'static/dean.png';", f"IMAGES.p2.src = '{dean_b64}';")
-final_html = final_html.replace("IMAGES.dino.src = 'static/dino.png';", f"IMAGES.dino.src = '{dino_b64}';")
+final_html = final_html.replace("IMAGES.dino.src = 'static/dino_green.png';", f"IMAGES.dino.src = '{dino_b64}';")
 final_html = final_html.replace("IMAGES.bg.src = 'static/jungle.png';", f"IMAGES.bg.src = '{jungle_b64}';")
-final_html = final_html.replace("IMAGES.bat.src = 'static/bat.png';", f"IMAGES.bat.src = '{bat_b64}';")
+final_html = final_html.replace("IMAGES.bat.src = 'static/bat_green.png';", f"IMAGES.bat.src = '{bat_b64}';")
 
 # Render with ample height for mobile viewports
 components.html(final_html, height=1200, scrolling=True)

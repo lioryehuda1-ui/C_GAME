@@ -1,19 +1,19 @@
-// ===== JURASSIC MULTIPLAYER: INSTANT PHONE-TO-PHONE SYNC =====
+// ===== JURASSIC MULTIPLAYER: ULTIMATE VISUAL & SCARE OVERHAUL =====
 'use strict';
 
 const CANVAS_W = 1000, CANVAS_H = 400, GROUND_Y = 320;
 const GRAVITY = 0.6, JUMP_FORCE = -14;
 const BASE_SPEED = 6.5, SPEED_INC = 0.0006;
 
-// Assets
 const IMAGES = { 
     bg: new Image(), dino: new Image(), p1: new Image(), p2: new Image(), bat: new Image() 
 };
+// Use raw sources first; they will be chroma-keyed into canvases
 IMAGES.bg.src = 'static/jungle.png';
-IMAGES.dino.src = 'static/dino.png';
+IMAGES.dino.src = 'static/dino_green.png';
 IMAGES.p1.src = 'static/shaun.png';
 IMAGES.p2.src = 'static/dean.png';
-IMAGES.bat.src = 'static/bat.png';
+IMAGES.bat.src = 'static/bat_green.png';
 
 const SOUNDS = {
     jump: new Audio('https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3'),
@@ -22,15 +22,19 @@ const SOUNDS = {
     screech: new Audio('https://assets.mixkit.co/active_storage/sfx/1210/1210-preview.mp3')
 };
 
-// State
 let canvas, ctx, animId = null, wss = null;
 let gameState = 'menu', myRole = 'spectator', speed = BASE_SPEED, score = 0, frameCount = 0;
 let obstacles = [], scares = [], keys = {}, screenShake = 0;
 
+// MASSIVE T-REX SIZE
+const DINO_SIZE = 220;
+
 let players = {
-    shaun: { x: 150, y: GROUND_Y-150, w: 150, h: 150, vy: 0, jumps: 0, lives: 3, invincible: 0, isDucking: false },
-    dean: { x: 250, y: GROUND_Y-150, w: 150, h: 150, vy: 0, jumps: 0, lives: 3, invincible: 0, isDucking: false }
+    shaun: { x: 150, y: GROUND_Y-DINO_SIZE, w: DINO_SIZE, h: DINO_SIZE, vy: 0, jumps: 0, lives: 3, invincible: 0, isDucking: false },
+    dean: { x: 250, y: GROUND_Y-DINO_SIZE, w: DINO_SIZE, h: DINO_SIZE, vy: 0, jumps: 0, lives: 3, invincible: 0, isDucking: false }
 };
+
+const processedImages = {};
 
 function init() {
     canvas = document.getElementById('gameCanvas');
@@ -38,12 +42,34 @@ function init() {
     canvas.width = CANVAS_W; canvas.height = CANVAS_H;
     window.addEventListener('keydown', e => keys[e.code] = true);
     window.addEventListener('keyup', e => keys[e.code] = false);
+    
+    // Process Green Screen assets once loaded
+    IMAGES.dino.onload = () => processedImages.dino = keyOutGreen(IMAGES.dino);
+    IMAGES.bat.onload = () => processedImages.bat = keyOutGreen(IMAGES.bat);
+    
     showScreen('menu-screen');
 }
 
+// CHROMA KEY: Remove #00FF00 green background
+function keyOutGreen(img) {
+    const offCanvas = document.createElement('canvas');
+    offCanvas.width = img.width; offCanvas.height = img.height;
+    const offCtx = offCanvas.getContext('2d');
+    offCtx.drawImage(img, 0, 0);
+    const imageData = offCtx.getImageData(0, 0, offCanvas.width, offCanvas.height);
+    const data = imageData.data;
+    for (let i = 0; i < data.length; i += 4) {
+        // Green Screen logic: If G is high and R/B are low
+        if (data[i+1] > 140 && data[i] < 120 && data[i+2] < 120) {
+            data[i+3] = 0; // Transparent
+        }
+    }
+    offCtx.putImageData(imageData, 0, 0);
+    return offCanvas;
+}
+
 function joinAs(role) {
-    myRole = role;
-    connectWSS();
+    myRole = role; connectWSS();
     gameState = 'playing';
     SOUNDS.roar.play().catch(() => {});
     showScreen('game-screen');
@@ -51,7 +77,6 @@ function joinAs(role) {
 }
 
 function connectWSS() {
-    // SocketsBay public relay for instant multiplayer
     wss = new WebSocket('wss://socketsbay.com/wss/v2/1/jurassic-shaun-dean/');
     wss.onmessage = (e) => {
         try {
@@ -80,36 +105,28 @@ function update() {
     score = Math.floor(frameCount / 10);
     speed += SPEED_INC;
 
-    // SCARY SCATTER - Random Bat
-    if (frameCount % 400 === 0 && Math.random() > 0.5) triggerScare();
+    // SCARY SCATTER - Every 4-8 seconds
+    if (frameCount % 300 === 0 && Math.random() > 0.3) triggerScare();
 
     const me = players[myRole];
     if (me) {
-        // Jump / Controls
         if ((keys['KeyW'] || keys['Space'] || keys['ArrowUp']) && me.y >= GROUND_Y - me.h) {
             me.vy = JUMP_FORCE; sendState('jump');
             SOUNDS.jump.cloneNode().play().catch(() => {});
         }
         me.isDucking = keys['KeyS'] || keys['ArrowDown'];
-        me.h = me.isDucking ? 100 : 150;
+        me.h = me.isDucking ? 140 : DINO_SIZE;
         me.y = me.isDucking && me.y >= GROUND_Y - me.h ? GROUND_Y - me.h : me.y;
-
-        // Physics
-        me.vy += GRAVITY;
-        me.y += me.vy;
+        me.vy += GRAVITY; me.y += me.vy;
         if (me.y + me.h > GROUND_Y) { me.y = GROUND_Y - me.h; me.vy = 0; }
-        
         if (me.invincible > 0) me.invincible--;
         sendState();
     }
 
-    // Master (Shaun) generates obstacles
     if (myRole === 'shaun' && frameCount % 120 === 0) {
         obstacles.push({ x: CANVAS_W, y: GROUND_Y - 40, w: 40, h: 40 });
     }
 
-    // Sync obstacles? For a simple relay, let's keep it simple: each phone has own obstacles or Shaun relays.
-    // Simplifying: Local obstacles for now to ensure NO LAG, but players see each other.
     obstacles.forEach(obs => {
         obs.x -= speed;
         [players.shaun, players.dean].forEach(p => {
@@ -120,7 +137,6 @@ function update() {
     });
     obstacles = obstacles.filter(o => o.x + o.w > 0);
 
-    // Update Scares
     scares.forEach(s => { s.x += s.vx; s.y += s.vy; s.opacity -= 0.005; });
     scares = scares.filter(s => s.opacity > 0);
     if (screenShake > 0) screenShake--;
@@ -134,7 +150,7 @@ function triggerScare() {
 
 function spawnScare(type) {
     if (type === 'bat') {
-        scares.push({ x: CANVAS_W + 100, y: 50, w: 200, h: 100, vx: -12, vy: 1, opacity: 1 });
+        scares.push({ x: CANVAS_W + 100, y: Math.random()*100 + 20, w: 300, h: 150, vx: -14, vy: 1, opacity: 1 });
         SOUNDS.screech.cloneNode().play().catch(() => {});
     }
 }
@@ -150,20 +166,22 @@ function draw() {
     ctx.drawImage(IMAGES.bg, bgX + CANVAS_W, 0, CANVAS_W, CANVAS_H);
     ctx.strokeStyle = '#3d2b1f'; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(0, GROUND_Y); ctx.lineTo(CANVAS_W, GROUND_Y); ctx.stroke();
 
-    // Draw Players
     for (let role in players) {
         const p = players[role];
         ctx.save();
         if (p.invincible % 10 < 5 && p.invincible > 0) ctx.globalAlpha = 0.3;
-        ctx.drawImage(IMAGES.dino, p.x, p.y, p.w, p.h);
+        const img = processedImages.dino || IMAGES.dino;
+        ctx.drawImage(img, p.x, p.y, p.w, p.h);
         ctx.restore();
     }
 
     obstacles.forEach(o => { ctx.fillStyle = '#4caf50'; ctx.font = '30px serif'; ctx.fillText('🌵', o.x, o.y + 30); });
 
-    // Draw Scares
     scares.forEach(s => {
-        ctx.save(); ctx.globalAlpha = s.opacity; ctx.drawImage(IMAGES.bat, s.x, s.y, s.w, s.h); ctx.restore();
+        ctx.save(); ctx.globalAlpha = s.opacity;
+        const img = processedImages.bat || IMAGES.bat;
+        ctx.drawImage(img, s.x, s.y, s.w, s.h);
+        ctx.restore();
     });
 
     document.getElementById('hud-score').innerText = score;
