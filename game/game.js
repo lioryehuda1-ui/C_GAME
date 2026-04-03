@@ -40,11 +40,41 @@ const SOUNDS = {
 };
 SOUNDS.roar.volume = 0.4;
 
+// --- Canvas Texture Helpers ---
+function createDinoTex(emoji, color, label) {
+    const c = document.createElement('canvas');
+    c.width = 512; c.height = 560;
+    const x = c.getContext('2d');
+    x.clearRect(0, 0, 512, 560);
+    x.shadowColor = color; x.shadowBlur = 60;
+    x.font = '380px serif';
+    x.textAlign = 'center'; x.textBaseline = 'middle';
+    x.fillText(emoji, 256, 240);
+    x.shadowBlur = 15;
+    x.font = 'bold 76px Arial';
+    x.fillStyle = color;
+    x.strokeStyle = '#000';
+    x.lineWidth = 5;
+    x.strokeText(label, 256, 490);
+    x.fillText(label, 256, 490);
+    return new THREE.CanvasTexture(c);
+}
+
+function createObsTex(emoji) {
+    const c = document.createElement('canvas');
+    c.width = 256; c.height = 256;
+    const x = c.getContext('2d');
+    x.clearRect(0, 0, 256, 256);
+    x.font = '200px serif';
+    x.textAlign = 'center'; x.textBaseline = 'middle';
+    x.fillText(emoji, 128, 145);
+    return new THREE.CanvasTexture(c);
+}
+
 // --- Initialization ---
 function init() {
     scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x050a05);
-    scene.fog = new THREE.FogExp2(0x050a05, 0.015);
+    scene.fog = new THREE.FogExp2(0x0a1a06, 0.007);
 
     camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
     camera.position.set(0, 9, 15);
@@ -77,14 +107,30 @@ function init() {
     lavaGlow.position.set(0, 5, -20);
     scene.add(lavaGlow);
 
-    // --- Floor ---
+    // --- Jungle Background Wall ---
+    TEX.bg.wrapS = TEX.bg.wrapT = THREE.ClampToEdgeWrapping;
+    const bgGeo = new THREE.PlaneGeometry(250, 90);
+    const bgMat = new THREE.MeshBasicMaterial({ map: TEX.bg });
+    const bgWall = new THREE.Mesh(bgGeo, bgMat);
+    bgWall.position.set(0, 28, -75);
+    scene.add(bgWall);
+
+    // --- Jungle Floor ---
     const floorGeo = new THREE.PlaneGeometry(40, 1000);
-    const floorMat = new THREE.MeshStandardMaterial({ color: 0x112211, roughness: 0.8 });
+    const floorMat = new THREE.MeshStandardMaterial({ color: 0x1a3d0a, roughness: 0.95 });
     const floor = new THREE.Mesh(floorGeo, floorMat);
     floor.rotation.x = -Math.PI / 2;
     scene.add(floor);
 
-    // --- Particles (Dust & Sparks) ---
+    // --- Emoji Dino & Obstacle Textures ---
+    TEX.shaun = createDinoTex('🦕', '#00ff88', 'שון');
+    TEX.dean  = createDinoTex('🦖', '#ff8800', 'דין');
+    TEX.obsMine  = createObsTex('🪨');
+    TEX.obsBird  = createObsTex('🦅');
+    TEX.obsLava  = createObsTex('🌋');
+    TEX.obsPower = createObsTex('⭐');
+
+    // --- Particles (Forest Dust) ---
     initParticles();
 
     setupControls();
@@ -103,7 +149,7 @@ function initParticles() {
         pos.push((Math.random()-0.5)*20, Math.random()*2, (Math.random()-0.5)*50);
     }
     geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-    const mat = new THREE.PointsMaterial({ size: 0.1, map: TEX.spark, transparent: true, blending: THREE.AdditiveBlending, color: 0xff4d00 });
+    const mat = new THREE.PointsMaterial({ size: 0.07, map: TEX.spark, transparent: true, blending: THREE.AdditiveBlending, color: 0x44ff88 });
     particles = new THREE.Points(geo, mat);
     scene.add(particles);
 }
@@ -221,10 +267,12 @@ function updateLobbyUI(msg) {
 function sendWS(data) { if (wss && wss.readyState === WebSocket.OPEN) wss.send(JSON.stringify(data)); }
 
 function spawnObs(d) {
-    const mat = new THREE.SpriteMaterial({ map: TEX.mine });
+    const texMap = { MINE: TEX.obsMine, BIRD: TEX.obsBird, LAVA_GAP: TEX.obsLava, POWERUP: TEX.obsPower };
+    const mat = new THREE.SpriteMaterial({ map: texMap[d.type] || TEX.obsMine, transparent: true });
     const s = new THREE.Sprite(mat);
-    s.scale.set(12, 12, 1);
-    s.position.set(d.lane, 6, d.z);
+    const obsY = d.type === 'BIRD' ? 9 : 5.5;
+    s.scale.set(10, 10, 1);
+    s.position.set(d.lane, obsY, d.z);
     scene.add(s);
     activeObs.push({ mesh: s, lane: d.lane, type: d.type });
 }
@@ -268,13 +316,22 @@ function updateGame(dt) {
     score += Math.floor(WORLD_SPEED * 10);
     document.getElementById('hud-score').innerText = score;
 
+    const t = Date.now();
     for (let r in players) {
         const p = players[r]; if (!p) continue;
         p.vy += GRAVITY; p.mesh.position.y += p.vy;
         const ground = p.isCrouching ? 3.5 : 4.5;
         if (p.mesh.position.y < ground) { p.mesh.position.y = ground; p.vy = 0; p.isJumping = false; p.jumps = 0; }
-        // Wobble
-        if (!p.isJumping) p.mesh.position.y = ground + Math.sin(Date.now()*0.01)*0.25;
+        if (!p.isJumping && !p.isCrouching) {
+            // Running bounce
+            p.mesh.position.y = ground + Math.abs(Math.sin(t * 0.018)) * 0.5;
+            // Running tilt
+            p.mesh.material.rotation = Math.sin(t * 0.018) * 0.15;
+        } else if (p.isJumping) {
+            p.mesh.material.rotation = 0.25;
+        } else {
+            p.mesh.material.rotation = 0;
+        }
     }
 
     for (let i = activeObs.length-1; i >= 0; i--) {
