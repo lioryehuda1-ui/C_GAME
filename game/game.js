@@ -195,6 +195,8 @@ function connectWS() {
         if (msg.type === 'spawn') msg.data.forEach(d => spawnObs(d));
         else if (msg.type === 'start_countdown') startCountdown(msg.delay);
         else if (msg.type === 'lobby_update') updateLobbyUI(msg);
+        else if (msg.type === 'ready_update') updateLobbyUI(msg);
+        else if (msg.type === 'remote_game_over') endGame();
     };
 }
 
@@ -308,7 +310,9 @@ function updateHUD() {
 }
 
 function endGame() {
+    if (gameState === 'over') return;
     gameState = 'over';
+    sendWS({ type: 'game_over', score: score });
     document.getElementById('gameover-screen').classList.add('active');
     document.getElementById('final-score').innerText = score;
     SOUNDS.dead.play().catch(()=>{});

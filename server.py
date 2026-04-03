@@ -99,7 +99,7 @@ async def match_endpoint(websocket: WebSocket, room_id: str, player_id: str):
             # --- Lobby Ready System ---
             if msg["type"] == "ready":
                 session.ready_players.add(player_id)
-                await session.broadcast({"type": "ready_update", "player": player_id, "ready": list(session.ready_players)})
+                await session.broadcast({"type": "ready_update", "player": player_id, "players": list(session.players.keys()), "ready": list(session.ready_players)})
                 
                 # Auto-start logic
                 if len(session.ready_players) >= 2 and not session.is_running:
