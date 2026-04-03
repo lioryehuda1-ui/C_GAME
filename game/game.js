@@ -59,16 +59,16 @@ function init() {
     // --- Post-Processing (Bloom & Glow) ---
     const renderScene = new THREE.RenderPass(scene, camera);
     const bloomPass = new THREE.UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
-    bloomPass.threshold = 0.2;
-    bloomPass.strength = 1.2;
-    bloomPass.radius = 0.5;
+    bloomPass.threshold = 0.8;
+    bloomPass.strength = 0.4;
+    bloomPass.radius = 0.3;
 
     composer = new THREE.EffectComposer(renderer);
     composer.addPass(renderScene);
     composer.addPass(bloomPass);
 
     // --- Lighting ---
-    scene.add(new THREE.AmbientLight(0xffffff, 0.3));
+    scene.add(new THREE.AmbientLight(0xffffff, 1.2));
     const sun = new THREE.DirectionalLight(0xffffff, 1);
     sun.position.set(10, 20, 10);
     scene.add(sun);
@@ -162,8 +162,9 @@ function crouch() {
 // --- Multiplayer Hub ---
 function joinAs(role) {
     myRole = role;
-    players.shaun = createPlayerSprite('shaun');
-    players.dean = createPlayerSprite('dean');
+    myLane = role === 'shaun' ? 0 : 2;
+    players.shaun = createPlayerSprite('shaun', 0);
+    players.dean = createPlayerSprite('dean', 2);
     document.getElementById('card-shaun').classList.toggle('active', role === 'shaun');
     document.getElementById('card-dean').classList.toggle('active', role === 'dean');
     document.getElementById('lobby-actions').classList.remove('hidden');
@@ -171,13 +172,13 @@ function joinAs(role) {
     connectWS();
 }
 
-function createPlayerSprite(role) {
+function createPlayerSprite(role, laneIndex) {
     const mat = new THREE.SpriteMaterial({ map: TEX[role], transparent: true });
     const sprite = new THREE.Sprite(mat);
     sprite.scale.set(8, 8, 1);
-    sprite.position.set(LANES[1], 4.5, PLAYER_START_Z);
+    sprite.position.set(LANES[laneIndex], 4.5, PLAYER_START_Z);
     scene.add(sprite);
-    return { mesh: sprite, lane: 1, vy: 0, isJumping: false, jumps: 0, lives: 3, invul: 0 };
+    return { mesh: sprite, lane: laneIndex, vy: 0, isJumping: false, jumps: 0, lives: 3, invul: 0 };
 }
 
 function connectWS() {
