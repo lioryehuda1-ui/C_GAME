@@ -55,13 +55,15 @@ body {
 
 .hud-top { display: flex; justify-content: space-between; align-items: flex-start; }
 
-.hud-player { 
-    background: var(--glass);
+.hud-player {
+    background: rgba(0,0,0,0.7);
     padding: 10px 20px; border-radius: 20px;
-    border: 1px solid rgba(255,255,255,0.15);
-    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,120,0,0.3);
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
     text-align: center;
     min-width: 140px;
+    box-shadow: 0 0 20px rgba(255,80,0,0.15);
 }
 
 .hud-role { font-family: 'Bangers', cursive; font-size: 24px; color: var(--jurassic-gold); letter-spacing: 1px; }
@@ -84,9 +86,9 @@ body {
 .active { opacity: 1; pointer-events: all; }
 
 .mega-title {
-  font-family: 'Bangers', cursive; font-size: 80px;
+  font-family: 'Oswald', 'Bangers', cursive; font-size: 80px; font-weight: 700;
   color: #fff; text-align: center;
-  text-shadow: 0 5px 0 #333, 0 10px 30px rgba(0,0,0,0.8);
+  text-shadow: 0 0 40px rgba(255,100,0,0.8), 0 5px 0 #111, 0 10px 30px rgba(0,0,0,0.9);
   letter-spacing: 4px; line-height: 0.95;
 }
 .color-blood { color: var(--blood); }
@@ -97,12 +99,14 @@ body {
 .player-selection-row { display: flex; gap: 40px; justify-content: center; margin-bottom: 50px; }
 
 .pcard-v2 {
-  background: var(--glass);
-  border: 4px solid #333;
+  background: rgba(0,0,0,0.75);
+  border: 2px solid rgba(255,120,0,0.25);
   border-radius: 40px; padding: 25px;
   width: 220px; text-align: center;
   cursor: pointer; transition: 0.4s var(--trans);
-  box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+  box-shadow: 0 20px 50px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.08);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
   position: relative;
 }
 .pcard-v2:hover { transform: translateY(-15px) scale(1.05); border-color: var(--jurassic-gold); }
