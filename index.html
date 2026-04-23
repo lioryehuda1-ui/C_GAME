@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>🦕 DINO RUNNER - דין ושון 🦖</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="game-wrapper">
+    <div class="title-bar">
+      <span class="title-emoji">🦕</span>
+      <span class="title-text">DINO RUNNER</span>
+      <span class="title-subtitle">של דין ושון</span>
+      <span class="title-emoji">🦖</span>
+    </div>
+
+    <div class="canvas-container">
+      <canvas id="gameCanvas"></canvas>
+    </div>
+
+    <div class="controls-hint">
+      <span>⌨️ Space / ↑ לקפיצה</span>
+      <span>📱 נגיעה על המסך</span>
+      <span>🖱️ לחיצת עכבר</span>
+    </div>
+  </div>
+
+  <script src="game.js"></script>
+  <script>
+    window.addEventListener('DOMContentLoaded', () => {
+      init('gameCanvas');
+    });
+  </script>
+</body>
+</html>
